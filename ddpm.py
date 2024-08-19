@@ -264,6 +264,14 @@ class DenoiseDiffusion:
         eps = torch.randn(xt.shape, device=xt.device)
         # Sample
         return mean + (var ** .5) * eps
+    
+    def ddim_sample(self, xt: torch.Tensor, t: torch.Tensor, prev_t: torch.Tensor):
+        eps_theta = self.eps_model(xt, t)
+        alpha_bar = gather(self.alpha_bar, t)
+        alpha_bar_prev = gather(self.alpha_bar, prev_t)
+        mean = alpha_bar_prev ** 0.5 * (xt - (1-alpha_bar) ** 0.5 * eps_theta) / alpha_bar ** 0.5
+        var = 1 - alpha_bar_prev
+        return mean + (var ** 0.5) * eps_theta
 
     def loss(self, x0: torch.Tensor, noise: Optional[torch.Tensor] = None):
         """

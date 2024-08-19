@@ -27,6 +27,8 @@ eps_model.load_state_dict(torch.load(model_path))
 eps_model.to(device)
 eps_model.eval()
 n_steps = 1000
+prev_steps = 5
+
 diffusion = DenoiseDiffusion(
     eps_model=eps_model,
     n_steps=n_steps,
@@ -38,11 +40,11 @@ with torch.no_grad():
     x = torch.randn([n_samples, 3, image_size, image_size],
                     device=device)
     # Remove noise for $T$ steps
-    for t_ in range(n_steps):
+    for t_ in range(n_steps//prev_steps-1):
         # $t$
-        t = n_steps - t_ - 1
-        # Sample from $\textcolor{lightgreen}{p_\theta}(x_{t-1}|x_t)$
-        x = diffusion.p_sample(x, x.new_full((n_samples,), t, dtype=torch.long))
+        t = (n_steps//prev_steps - t_ -1)*prev_steps
+        print(t)
+        x = diffusion.ddim_sample(x, torch.full((n_samples,), t, dtype=torch.long, device=device), torch.full((n_samples,), t-prev_steps, dtype=torch.long, device=device))
     x = x.cpu().numpy()
     for i, x_i in enumerate(x):
         x_i = x_i.transpose(1, 2, 0)
